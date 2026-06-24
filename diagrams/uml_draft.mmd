@@ -1,0 +1,77 @@
+classDiagram
+    class Pet {
+        +String id
+        +String name
+        +String species
+        +String breed
+        +Date birthDate
+        +String photoUrl
+        +addPet()
+        +removePet()
+        +updatePet()
+    }
+
+    class FeedingSchedule {
+        +String id
+        +String petId
+        +String foodType
+        +float portionSize
+        +String[] scheduledTimes
+        +boolean reminderEnabled
+        +addSchedule()
+        +updateSchedule()
+        +sendReminder()
+    }
+
+    class MedicationReminder {
+        +String id
+        +String petId
+        +String medicationName
+        +String dosage
+        +String frequency
+        +Date startDate
+        +Date endDate
+        +boolean reminderEnabled
+        +addMedication()
+        +updateMedication()
+        +sendReminder()
+        +markAsTaken()
+    }
+
+    class Event {
+        +String id
+        +String petId
+        +String title
+        +String type
+        +Date dateTime
+        +String location
+        +String notes
+        +boolean reminderEnabled
+        +scheduleEvent()
+        +cancelEvent()
+        +sendReminder()
+    }
+
+    class VetAppointment {
+        +String vetName
+        +String clinicName
+        +String clinicPhone
+        +String reason
+        +reschedule()
+    }
+
+    class User {
+        +String id
+        +String name
+        +String email
+        +List~Pet~ pets
+        +addPet()
+        +removePet()
+        +getPets()
+    }
+
+    User "1" --> "0..*" Pet : owns
+    Pet "1" --> "0..*" FeedingSchedule : has
+    Pet "1" --> "0..*" MedicationReminder : has
+    Pet "1" --> "0..*" Event : has
+    VetAppointment --|> Event : extends
