@@ -5,11 +5,14 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+- A pet care app with the functions of adding a pet, event/vet scheduling, feeding schedules/reminders, and medication reminders
 - What classes did you include, and what responsibilities did you assign to each?
+- The classes I included are: User, Pet, FeedingSchedule, MedicationReminder, Event, VetAppointment. The responsabilities are self explanatory.
 
 **b. Design changes**
 
 - Did your design change during implementation?
+No.
 - If yes, describe at least one change and why you made it.
 
 ---
