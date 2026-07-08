@@ -47,11 +47,10 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+========================================
+08:00 AM  Rex        Breakfast (pending)
+12:00 PM  Whiskers   Give allergy pill (pending)
+03:00 PM  Rex        Annual checkup (pending)
 ```
 
 ## 🧪 Testing PawPal+
@@ -72,14 +71,12 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_time()` | Sorts any iterable of tasks (or all of the owner's tasks) by `scheduled_time`, earliest first. Reused internally by `get_upcoming_tasks()`, `get_daily_schedule()`, `get_filtered_tasks()`, and `filter_tasks()` so there's one sort implementation instead of four. |
+| Filtering | `Scheduler.get_filtered_tasks()`, `Scheduler.filter_tasks()` | `get_filtered_tasks(pet_id, completed, day)` filters by pet id, completion status, and/or calendar day. `filter_tasks(completed, pet_name)` filters the same way but by pet **name** instead of id, for callers that only have the pet's display name. Both combine filters with AND and return results sorted by time. |
+| Conflict handling | `Scheduler.get_conflicts()`, `Scheduler.get_owner_conflicts()`, `Scheduler.get_exact_time_conflicts()`, `Scheduler.describe_conflicts()` | `get_conflicts(pet_id, buffer_minutes=15)` flags a single pet's incomplete tasks scheduled within a time buffer of each other; `get_owner_conflicts(buffer_minutes=15)` does the same across all of the owner's pets (e.g. two different pets needing attention at once). `get_exact_time_conflicts(pet_id=None)` is a stricter check for tasks at the *exact* same timestamp. All three sort once and compare only adjacent tasks (O(n log n)) and return conflicts as data, not exceptions. `describe_conflicts()` turns those pairs into printable warning strings so a scheduling clash surfaces as a warning instead of crashing the app. |
+| Recurring tasks | `Task.next_occurrence()`, `Scheduler.complete_task()` | `Task.next_occurrence()` advances `scheduled_time` by one day (`frequency="daily"`) or one week (`frequency="weekly"`) using `timedelta`, preserving the original time-of-day; a `"once"` task returns `None`. `Scheduler.complete_task(task_id)` marks the task complete and, if it recurs, automatically appends the next occurrence (with a freshly generated id) to the same pet's task list. |
 
 ## 📸 Demo Walkthrough
 

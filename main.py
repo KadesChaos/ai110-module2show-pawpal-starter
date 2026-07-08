@@ -32,21 +32,70 @@ def main() -> None:
         "t3", rex.id, "Annual checkup", datetime.combine(today, datetime.min.time().replace(hour=15)),
         frequency="once", vet_name="Dr. Patel", clinic_name="Sunny Vet Clinic", reason="Annual checkup",
     )
+    evening_walk = FeedingSchedule(
+        "t4", rex.id, "Evening walk", datetime.combine(today, datetime.min.time().replace(hour=18)),
+        frequency="daily", food_type="", portion_size=0.0,
+    )
+    grooming = VetAppointment(
+        "t5", whiskers.id, "Grooming appointment", datetime.combine(today, datetime.min.time().replace(hour=15)),
+        frequency="once", vet_name="Dr. Lopez", clinic_name="Sunny Vet Clinic", reason="Grooming",
+    )
 
-    rex.add_task(breakfast)
-    whiskers.add_task(medication)
+    # Added out of chronological order (15:00, 8:00, 18:00, 12:00, 15:00) to prove sorting works.
+    # vet_visit and grooming share the same 3:00 PM slot for different pets, to trigger a conflict.
     rex.add_task(vet_visit)
+    rex.add_task(breakfast)
+    rex.add_task(evening_walk)
+    whiskers.add_task(medication)
+    whiskers.add_task(grooming)
+
+    medication.mark_complete()
 
     scheduler = Scheduler(owner)
 
-    print("Today's Schedule")
-    print("=" * 40)
-    for task in scheduler.get_daily_schedule(today):
-        pet = owner.get_pet(task.pet_id)
-        pet_name = pet.name if pet else "Unknown"
-        time_str = task.scheduled_time.strftime("%I:%M %p")
-        status = "done" if task.completed else "pending"
-        print(f"{time_str}  {pet_name:<10} {task.description} ({status})")
+    def print_tasks(tasks) -> None:
+        if not tasks:
+            print("  (none)")
+            return
+        for task in tasks:
+            pet = owner.get_pet(task.pet_id)
+            pet_name = pet.name if pet else "Unknown"
+            time_str = task.scheduled_time.strftime("%I:%M %p")
+            status = "done" if task.completed else "pending"
+            print(f"  {time_str}  {pet_name:<10} {task.description} ({status})")
+
+    print("Today's Schedule (sort_by_time via get_daily_schedule)")
+    print("=" * 55)
+    print_tasks(scheduler.get_daily_schedule(today))
+
+    print("\nAll tasks sorted by time (sort_by_time)")
+    print("=" * 55)
+    print_tasks(scheduler.sort_by_time())
+
+    print("\nPending tasks only (filter_tasks completed=False)")
+    print("=" * 55)
+    print_tasks(scheduler.filter_tasks(completed=False))
+
+    print("\nCompleted tasks only (filter_tasks completed=True)")
+    print("=" * 55)
+    print_tasks(scheduler.filter_tasks(completed=True))
+
+    print("\nRex's tasks only (filter_tasks pet_name='Rex')")
+    print("=" * 55)
+    print_tasks(scheduler.filter_tasks(pet_name="Rex"))
+
+    print("\nRex's pending tasks (filter_tasks pet_name='Rex', completed=False)")
+    print("=" * 55)
+    print_tasks(scheduler.filter_tasks(pet_name="Rex", completed=False))
+
+    print("\nConflict check (get_exact_time_conflicts)")
+    print("=" * 55)
+    conflicts = scheduler.get_exact_time_conflicts()
+    if conflicts:
+        for message in scheduler.describe_conflicts(conflicts):
+            print(message)
+    else:
+        print("  (no conflicts found)")
 
 
 if __name__ == "__main__":

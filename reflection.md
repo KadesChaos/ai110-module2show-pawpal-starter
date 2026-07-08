@@ -27,7 +27,9 @@ No.
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
+- My `Scheduler.get_exact_time_conflicts()` only flags tasks scheduled at the *exact* same timestamp, rather than checking for overlapping durations (e.g. a 30-minute vet visit at 3:00 PM overlapping a 3:15 PM feeding). Tasks in this app are modeled as single points in time (`scheduled_time`) with no duration field, so there's nothing to overlap — two tasks either share a timestamp or they don't. I also added a separate, buffer-based check (`get_conflicts`/`get_owner_conflicts`) that flags tasks within a configurable number of minutes of each other (default 15), which approximates "close enough to be impractical for one owner to do both," but it's still a proxy for real interval overlap, not a true duration-aware check.
 - Why is that tradeoff reasonable for this scenario?
+- For a pet owner's daily task list, most tasks (feeding, medication, walks) are quick and not meaningfully "in progress" for a modeled duration — what actually matters is whether two things are due around the same moment. Adding a `duration` field and full interval-overlap logic (checking `start_a < end_b and start_b < end_a`) would be more accurate but adds a field every existing task would need to populate, plus more edge cases (what's a sensible default duration for a vet visit vs. a feeding?) for a feature that mostly matters for the vet-appointment case anyway. The buffer-based check gets most of the practical benefit — warning the owner about back-to-back commitments — without that added complexity.
 
 ---
 
