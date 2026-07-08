@@ -76,14 +76,28 @@ if st.button("Add task"):
     )
     st.rerun()
 
+scheduler = Scheduler(owner)
+
 if selected_pet.get_tasks():
     st.write(f"Tasks for {selected_pet.name}:")
     st.table(
         [
-            {"description": t.description, "time": t.scheduled_time.strftime("%I:%M %p"), "frequency": t.frequency}
-            for t in selected_pet.get_tasks()
+            {
+                "Time": t.scheduled_time.strftime("%I:%M %p"),
+                "Task": t.description,
+                "Frequency": t.frequency,
+                "Status": "✅ done" if t.completed else "⏳ pending",
+            }
+            for t in scheduler.sort_by_time(selected_pet.get_tasks())
         ]
     )
+
+    pet_conflicts = scheduler.get_conflicts(selected_pet.id)
+    if pet_conflicts:
+        for message in scheduler.describe_conflicts(pet_conflicts):
+            st.warning(f"⚠️ {message} — consider rescheduling one of these.")
+    else:
+        st.success(f"No scheduling conflicts for {selected_pet.name}.")
 else:
     st.info(f"No tasks yet for {selected_pet.name}. Add one above.")
 
@@ -100,20 +114,22 @@ if st.button("Generate schedule"):
     else:
         conflicts = scheduler.get_owner_conflicts()
         if conflicts:
-            for earlier, later in conflicts:
-                earlier_pet = owner.get_pet(earlier.pet_id)
-                later_pet = owner.get_pet(later.pet_id)
-                st.warning(
-                    f"Conflict: '{earlier.description}' ({earlier_pet.name if earlier_pet else 'Unknown'}) "
-                    f"at {earlier.scheduled_time.strftime('%I:%M %p')} is close to "
-                    f"'{later.description}' ({later_pet.name if later_pet else 'Unknown'}) "
-                    f"at {later.scheduled_time.strftime('%I:%M %p')}"
-                )
+            st.warning(f"⚠️ {len(conflicts)} scheduling conflict(s) found — you may not be able to attend to all pets on time.")
+            for message in scheduler.describe_conflicts(conflicts):
+                st.warning(f"⚠️ {message} — consider rescheduling one of these.")
+        else:
+            st.success("No scheduling conflicts today. You're all set!")
 
         st.write("Today's schedule:")
-        for task in todays_tasks:
-            pet = owner.get_pet(task.pet_id)
-            pet_label = pet.name if pet else "Unknown"
-            time_str = task.scheduled_time.strftime("%I:%M %p")
-            status = "done" if task.completed else "pending"
-            st.markdown(f"- **{time_str}** — {pet_label}: {task.description} ({task.frequency}, {status})")
+        st.table(
+            [
+                {
+                    "Time": task.scheduled_time.strftime("%I:%M %p"),
+                    "Pet": (owner.get_pet(task.pet_id).name if owner.get_pet(task.pet_id) else "Unknown"),
+                    "Task": task.description,
+                    "Frequency": task.frequency,
+                    "Status": "✅ done" if task.completed else "⏳ pending",
+                }
+                for task in todays_tasks
+            ]
+        )

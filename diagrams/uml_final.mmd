@@ -1,0 +1,95 @@
+classDiagram
+    class Task {
+        +String id
+        +String petId
+        +String description
+        +DateTime scheduledTime
+        +String frequency
+        +boolean completed
+        +boolean reminderEnabled
+        +markComplete()
+        +markIncomplete()
+        +reschedule(newTime)
+        +isOverdue(now) bool
+        +sendReminder()
+        +nextOccurrence(newId) Task
+    }
+
+    class FeedingSchedule {
+        +String foodType
+        +float portionSize
+    }
+
+    class MedicationReminder {
+        +String medicationName
+        +String dosage
+        +Date endDate
+        +markAsTaken()
+    }
+
+    class Event {
+        +String title
+        +String location
+        +String notes
+        +cancelEvent()
+    }
+
+    class VetAppointment {
+        +String vetName
+        +String clinicName
+        +String clinicPhone
+        +String reason
+    }
+
+    class Pet {
+        +String id
+        +String name
+        +String species
+        +String breed
+        +Date birthDate
+        +String photoUrl
+        +List~Task~ tasks
+        +addTask(task)
+        +removeTask(taskId)
+        +getTasks(includeCompleted) List~Task~
+        +updatePet(kwargs)
+    }
+
+    class Owner {
+        +String id
+        +String name
+        +String email
+        +List~Pet~ pets
+        +addPet(pet)
+        +removePet(petId)
+        +getPets() List~Pet~
+        +getPet(petId) Pet
+        +getAllTasks() List~Task~
+    }
+
+    class Scheduler {
+        +Owner owner
+        +getAllTasks() List~Task~
+        +getTasksForPet(petId) List~Task~
+        +sortByTime(tasks) List~Task~
+        +getUpcomingTasks(now) List~Task~
+        +getOverdueTasks(now) List~Task~
+        +getDailySchedule(day) List~Task~
+        +getFilteredTasks(petId, completed, day) List~Task~
+        +filterTasks(completed, petName) List~Task~
+        +completeTask(taskId) bool
+        +getConflicts(petId, bufferMinutes) List~Tuple~
+        +getExactTimeConflicts(petId) List~Tuple~
+        +getOwnerConflicts(bufferMinutes) List~Tuple~
+        +describeConflicts(conflicts) List~String~
+        +sendDueReminders(now)
+    }
+
+    Task <|-- FeedingSchedule
+    Task <|-- MedicationReminder
+    Task <|-- Event
+    Event <|-- VetAppointment
+
+    Owner "1" --> "0..*" Pet : owns
+    Pet "1" --> "0..*" Task : has
+    Scheduler "1" --> "1" Owner : operates on

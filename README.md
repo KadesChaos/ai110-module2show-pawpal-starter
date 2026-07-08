@@ -57,7 +57,7 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
 pytest --cov
@@ -66,7 +66,15 @@ pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
+================================================= test session starts =================================================
+platform win32 -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: E:\school\codepath\.git\codepathAI110\ai110-module2show-pawpal-starter
+plugins: anyio-4.13.0
+collected 25 items
+
+tests\test_pawpal.py .........................                                                                   [100%]
+
+================================================= 25 passed in 0.07s ==================================================
 ```
 
 ## 📐 Smarter Scheduling
@@ -77,15 +85,77 @@ Sample test output:
 | Filtering | `Scheduler.get_filtered_tasks()`, `Scheduler.filter_tasks()` | `get_filtered_tasks(pet_id, completed, day)` filters by pet id, completion status, and/or calendar day. `filter_tasks(completed, pet_name)` filters the same way but by pet **name** instead of id, for callers that only have the pet's display name. Both combine filters with AND and return results sorted by time. |
 | Conflict handling | `Scheduler.get_conflicts()`, `Scheduler.get_owner_conflicts()`, `Scheduler.get_exact_time_conflicts()`, `Scheduler.describe_conflicts()` | `get_conflicts(pet_id, buffer_minutes=15)` flags a single pet's incomplete tasks scheduled within a time buffer of each other; `get_owner_conflicts(buffer_minutes=15)` does the same across all of the owner's pets (e.g. two different pets needing attention at once). `get_exact_time_conflicts(pet_id=None)` is a stricter check for tasks at the *exact* same timestamp. All three sort once and compare only adjacent tasks (O(n log n)) and return conflicts as data, not exceptions. `describe_conflicts()` turns those pairs into printable warning strings so a scheduling clash surfaces as a warning instead of crashing the app. |
 | Recurring tasks | `Task.next_occurrence()`, `Scheduler.complete_task()` | `Task.next_occurrence()` advances `scheduled_time` by one day (`frequency="daily"`) or one week (`frequency="weekly"`) using `timedelta`, preserving the original time-of-day; a `"once"` task returns `None`. `Scheduler.complete_task(task_id)` marks the task complete and, if it recurs, automatically appends the next occurrence (with a freshly generated id) to the same pet's task list. |
+| UI presentation | `app.py` | Sorted/filtered task lists render via `st.table()` with a ✅/⏳ status column instead of raw text. Conflict warnings from `describe_conflicts()` are shown with `st.warning()` next to the schedule they refer to, each ending in an actionable suggestion (e.g. "consider rescheduling one of these"). When no conflicts are found, `st.success()` confirms the schedule is clear instead of showing nothing. |
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Main UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit app (`app.py`) is organized into three sections:
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+- **Owner** — enter/edit the owner's name, stored in session state.
+- **Pets** — add a pet (name + species) and see all current pets in a table.
+- **Schedule a Task** — pick a pet, enter a task title, time, and frequency (`once`, `daily`, `weekly`), and add it to that pet's task list. Each pet's task table shows time, description, frequency, and a ✅/⏳ status, and immediately flags any same-pet time conflicts with `st.warning`/`st.success`.
+- **Build Schedule** — generates today's full schedule across every pet, sorted chronologically, with owner-wide conflict warnings shown above the table.
+
+### Example workflow
+
+1. Enter the owner's name ("Kate") and click **Add pet** to add "Rex" (Dog).
+2. Add a second pet, "Whiskers" (Cat).
+3. Select Rex, add a task "Breakfast" at 8:00 AM with frequency `daily`.
+4. Select Whiskers, add a task "Grooming appointment" at 3:00 PM with frequency `once`.
+5. Select Rex again, add "Annual checkup" also at 3:00 PM — the per-pet view stays clear since these are different pets, but click **Generate schedule** and the owner-wide conflict check flags that Rex and Whiskers both need attention at 3:00 PM.
+6. View **Today's schedule**, sorted earliest to latest, with the conflict warning displayed above it.
+
+### Key Scheduler behaviors demonstrated
+
+- **Sorting** — `Scheduler.sort_by_time()` (via `get_daily_schedule()`) always returns tasks earliest-first regardless of the order they were added.
+- **Conflict warnings** — `Scheduler.get_conflicts()` / `get_owner_conflicts()` / `get_exact_time_conflicts()` catch tasks scheduled too close together (or at the exact same time) for one pet or across all of an owner's pets, and `describe_conflicts()` turns them into human-readable warnings instead of crashing the app.
+- **Recurring tasks** — completing a `daily`/`weekly` task via `Scheduler.complete_task()` automatically generates and schedules its next occurrence.
+
+### Sample CLI output (`python main.py`)
+
+```
+Today's Schedule (sort_by_time via get_daily_schedule)
+=======================================================
+  08:00 AM  Rex        Breakfast (pending)
+  12:00 PM  Whiskers   Give allergy pill (done)
+  03:00 PM  Rex        Annual checkup (pending)
+  03:00 PM  Whiskers   Grooming appointment (pending)
+  06:00 PM  Rex        Evening walk (pending)
+
+All tasks sorted by time (sort_by_time)
+=======================================================
+  08:00 AM  Rex        Breakfast (pending)
+  12:00 PM  Whiskers   Give allergy pill (done)
+  03:00 PM  Rex        Annual checkup (pending)
+  03:00 PM  Whiskers   Grooming appointment (pending)
+  06:00 PM  Rex        Evening walk (pending)
+
+Pending tasks only (filter_tasks completed=False)
+=======================================================
+  08:00 AM  Rex        Breakfast (pending)
+  03:00 PM  Rex        Annual checkup (pending)
+  03:00 PM  Whiskers   Grooming appointment (pending)
+  06:00 PM  Rex        Evening walk (pending)
+
+Completed tasks only (filter_tasks completed=True)
+=======================================================
+  12:00 PM  Whiskers   Give allergy pill (done)
+
+Rex's tasks only (filter_tasks pet_name='Rex')
+=======================================================
+  08:00 AM  Rex        Breakfast (pending)
+  03:00 PM  Rex        Annual checkup (pending)
+  06:00 PM  Rex        Evening walk (pending)
+
+Rex's pending tasks (filter_tasks pet_name='Rex', completed=False)
+=======================================================
+  08:00 AM  Rex        Breakfast (pending)
+  03:00 PM  Rex        Annual checkup (pending)
+  06:00 PM  Rex        Evening walk (pending)
+
+Conflict check (get_exact_time_conflicts)
+=======================================================
+Warning: 'Annual checkup' (Rex) at 03:00 PM conflicts with 'Grooming appointment' (Whiskers) at 03:00 PM
+```
